@@ -650,7 +650,7 @@ export default function CashbooksListScreen({ navigation }) {
       <BusinessSwitcher
         visible={showBiz}
         onClose={() => setShowBiz(false)}
-        onAddNew={() => navigation.navigate('Onboarding')}
+        onAddNew={() => navigation.navigate('AddBusiness')}
       />
       <SortModal
         visible={showSort}
