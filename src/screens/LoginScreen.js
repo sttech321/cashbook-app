@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ActivityIndicator,
-  StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+  StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { sendOtp, verifyOtp } from '../api';
@@ -15,6 +15,7 @@ export default function LoginScreen() {
   const [value, setValue]   = useState('');
   const [otp, setOtp]       = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
   const otpRefs = useRef([]);
 
   const isEmail = mode === 'email';
@@ -27,7 +28,7 @@ export default function LoginScreen() {
       await sendOtp(isEmail ? { email: trimmed } : { mobile: trimmed });
       setStep('otp');
     } catch (err) {
-      Alert.alert('Error', err.message);
+      setErrorMsg(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -43,7 +44,7 @@ export default function LoginScreen() {
       );
       login(data.user);
     } catch (err) {
-      Alert.alert('Invalid OTP', err.message);
+      setErrorMsg(err.message || 'Invalid OTP');
     } finally {
       setLoading(false);
     }
@@ -138,6 +139,22 @@ export default function LoginScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Error Popup Modal */}
+      <Modal transparent={true} visible={!!errorMsg} animationType="fade" onRequestClose={() => setErrorMsg(null)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <View style={s.errorIconContainer}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </View>
+            <Text style={s.modalTitle}>Verification Failed</Text>
+            <Text style={s.modalMessage}>{errorMsg}</Text>
+            <TouchableOpacity style={s.modalBtn} onPress={() => setErrorMsg(null)}>
+              <Text style={s.modalBtnText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -168,5 +185,15 @@ const s = StyleSheet.create({
   otpRow:        { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
   otpBox:        { width: 46, height: 54, borderWidth: 1.5, borderColor: colors.gray200, borderRadius: radius.lg, fontSize: typography.xl, fontFamily: 'Poppins-Medium', color: colors.gray900 },
   otpBoxFilled:  { borderColor: colors.blue, backgroundColor: colors.blueLight },
-  resendRow:     { alignItems: 'center', marginTop: 16 },
-  resendText:    { color: colors.blue, fontSize: typography.base, fontFamily: 'Poppins-Medium' } });
+  resendRow:     { alignItems: 'center', marginTop: 24, paddingVertical: 8 },
+  resendText:    { color: colors.blue, fontSize: typography.base, fontFamily: 'Poppins-Medium' },
+  
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '85%', backgroundColor: '#fff', borderRadius: radius['2xl'], padding: 24, alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 },
+  errorIconContainer: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.red, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: typography.xl, fontFamily: 'Poppins-Medium', color: colors.gray900, marginBottom: 8 },
+  modalMessage: { fontSize: typography.base, fontFamily: 'Poppins-Regular', color: colors.gray500, textAlign: 'center', marginBottom: 24 },
+  modalBtn: { width: '100%', backgroundColor: colors.red, paddingVertical: 14, borderRadius: radius.xl, alignItems: 'center' },
+  modalBtnText: { color: '#fff', fontSize: typography.base, fontFamily: 'Poppins-Medium' },
+});
