@@ -23,6 +23,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "89816434-eb52-4703-a7fd-716886c62abe"
+      }
+    },
+    "owner": "cashbook-apps-team"
   }
 }
