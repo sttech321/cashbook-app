@@ -7,7 +7,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.cashbookapp",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -16,9 +18,11 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.anonymous.cashbookapp"
+      "package": "com.anonymous.cashbookapp",
+      "versionCode": 1
     },
     "web": {
+<<<<<<< HEAD
       "favicon": "./assets/favicon.png",
       "name": "CashBook App",
       "shortName": "CashBook",
@@ -26,5 +30,15 @@
       "themeColor": "#2563EB",
       "backgroundColor": "#ffffff"
     }
+=======
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "89816434-eb52-4703-a7fd-716886c62abe"
+      }
+    },
+    "owner": "cashbook-apps-team"
+>>>>>>> dc35326617be515c800fd0a1b8320179dd2a55e5
   }
 }

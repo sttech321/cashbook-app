@@ -10,6 +10,7 @@ import { colors } from '../theme';
 import SplashScreen           from '../screens/SplashScreen';
 import LoginScreen            from '../screens/LoginScreen';
 import OnboardingScreen       from '../screens/OnboardingScreen';
+import AddBusinessScreen       from '../screens/AddBusinessScreen';
 import CashbooksListScreen    from '../screens/CashbooksListScreen';
 import TransactionViewScreen  from '../screens/TransactionViewScreen';
 import AddEntryScreen         from '../screens/AddEntryScreen';
@@ -91,6 +92,7 @@ function AppStack() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Main"            component={MainTabs} />
         <Stack.Screen name="Onboarding"      component={OnboardingScreen} />
+        <Stack.Screen name="AddBusiness"     component={AddBusinessScreen} />
         <Stack.Screen name="TransactionView" component={TransactionViewScreen} />
         <Stack.Screen name="AddEntry"        component={AddEntryScreen} />
         <Stack.Screen name="Team"            component={TeamScreen} />

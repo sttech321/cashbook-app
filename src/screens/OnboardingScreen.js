@@ -3,53 +3,69 @@ import {
   View, Text, TextInput, TouchableOpacity, ActivityIndicator,
   StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { colors, typography, radius, spacing } from '../theme';
+import * as api from '../api';
+import BusinessCategoryGrid from '../components/BusinessCategoryGrid';
+import BusinessTypeList from '../components/BusinessTypeList';
 
-const CATEGORIES = ['Retail', 'Wholesale', 'Manufacturing', 'Services', 'Food & Beverage', 'Healthcare', 'Education', 'Real Estate', 'Other'];
-const TYPES      = ['Proprietorship', 'Partnership', 'Private Limited', 'LLP', 'HUF', 'Other'];
-
+// First-run onboarding for a brand-new user.
+// Step 1: name + business name  →  Step 2: category  →  Step 3: type  →  create.
+// Steps 2 & 3 reuse the exact same pickers as the AddBusiness wizard.
 export default function OnboardingScreen({ navigation }) {
-  const { addBusiness } = useApp();
-  const [step, setStep]           = useState(1); // 1, 2, 3
-  const [name, setName]           = useState('');
-  const [bizName, setBizName]     = useState('');
-  const [category, setCategory]   = useState('');
-  const [bizType, setBizType]     = useState('');
-  const [saving, setSaving]       = useState(false);
+  const { addBusiness, setCurrentBusinessId } = useApp();
+  const { updateUser } = useAuth();
+
+  const [step, setStep]         = useState(1); // 1 = name, 2 = category, 3 = type
+  const [name, setName]         = useState('');
+  const [bizName, setBizName]   = useState('');
+  const [category, setCategory] = useState('');
+  const [bizType, setBizType]   = useState('');
+  const [saving, setSaving]     = useState(false);
+
+  const goHome = () => {
+    if (navigation.canGoBack()) navigation.goBack();       // return to Cashbooks
+    else navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+  };
 
   const handleFinish = async () => {
-    if (!bizName.trim()) { Alert.alert('Required', 'Enter your business name'); return; }
+    if (!bizName.trim()) { setStep(1); return; }
     setSaving(true);
     try {
-      await addBusiness(bizName.trim(), category, bizType);
-      // Navigate to Main and clear Onboarding from the stack so back-button can't return here
-      navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+      const trimmedName = name.trim();
+      if (trimmedName) {
+        // Persist the user's name — non-fatal if it fails
+        try { await api.updateMe({ name: trimmedName }); updateUser({ name: trimmedName }); } catch { /* ignore */ }
+      }
+      const newId = await addBusiness(bizName.trim(), category, bizType);
+      if (newId) setCurrentBusinessId(newId);
+      goHome();
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert('Error', err.message || 'Failed to create business');
     } finally {
       setSaving(false);
     }
   };
 
-  return (
-    <SafeAreaView style={s.safe}>
-      {/* Header */}
-      <View style={s.header}>
-        <View style={s.logoRow}>
-          <View style={s.logoIcon}><Text style={s.logoLetter}>C</Text></View>
-          <Text style={s.logoText}>CASHBOOK</Text>
+  // ── Step 1: name + business name (image 1) ──
+  if (step === 1) {
+    return (
+      <SafeAreaView style={s.safe}>
+        <View style={s.header}>
+          <View style={s.logoRow}>
+            <View style={s.logoIcon}><Text style={s.logoLetter}>C</Text></View>
+            <Text style={s.logoText}>CASHBOOK</Text>
+          </View>
+          <View style={s.dots}>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={[s.dot, step >= i && s.dotActive]} />
+            ))}
+          </View>
         </View>
-        {/* Progress dots */}
-        <View style={s.dots}>
-          {[1, 2, 3].map((i) => (
-            <View key={i} style={[s.dot, step >= i && s.dotActive]} />
-          ))}
-        </View>
-      </View>
 
-      <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        {step === 1 && (
+        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.card}>
             <Text style={s.stepLabel}>Step 1 of 3</Text>
             <Text style={s.title}>What's your name?</Text>
@@ -70,6 +86,7 @@ export default function OnboardingScreen({ navigation }) {
               placeholderTextColor={colors.gray400}
               value={bizName}
               onChangeText={setBizName}
+              onSubmitEditing={() => { if (bizName.trim()) setStep(2); }}
             />
             <TouchableOpacity
               style={[s.btn, !bizName.trim() && s.btnDisabled]}
@@ -79,66 +96,66 @@ export default function OnboardingScreen({ navigation }) {
               <Text style={s.btnText}>Continue →</Text>
             </TouchableOpacity>
           </View>
-        )}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
-        {step === 2 && (
-          <View style={s.card}>
-            <Text style={s.stepLabel}>Step 2 of 3</Text>
-            <Text style={s.title}>Business Category</Text>
-            <Text style={s.subtitle}>Select the category that best describes your business</Text>
-            <View style={s.grid}>
-              {CATEGORIES.map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  style={[s.chip, category === c && s.chipActive]}
-                  onPress={() => setCategory(c)}
-                >
-                  <Text style={[s.chipText, category === c && s.chipTextActive]}>{c}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={s.navRow}>
-              <TouchableOpacity style={s.outlineBtn} onPress={() => setStep(1)}>
-                <Text style={s.outlineBtnText}>← Back</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.btn, s.btnFlex]} onPress={() => setStep(3)}>
-                <Text style={s.btnText}>Continue →</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+  // ── Steps 2 & 3: category / type picker (same flow as AddBusiness) ──
+  const isType = step === 3;
+  return (
+    <SafeAreaView style={fs.container} edges={['top']}>
+      <View style={fs.header}>
+        <TouchableOpacity onPress={() => setStep(step - 1)} style={fs.backBtn}>
+          <Ionicons name="chevron-back" size={24} color={colors.gray900} />
+        </TouchableOpacity>
+        <Text style={fs.headerTitle} />
+        <TouchableOpacity
+          onPress={() => (isType ? handleFinish() : setStep(3))}
+          style={fs.skipBtn}
+        >
+          <Text style={fs.skipText}>SKIP</Text>
+        </TouchableOpacity>
+      </View>
 
-        {step === 3 && (
-          <View style={s.card}>
-            <Text style={s.stepLabel}>Step 3 of 3</Text>
-            <Text style={s.title}>Business Type</Text>
-            <Text style={s.subtitle}>How is your business registered?</Text>
-            <View style={s.grid}>
-              {TYPES.map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  style={[s.chip, bizType === t && s.chipActive]}
-                  onPress={() => setBizType(t)}
-                >
-                  <Text style={[s.chipText, bizType === t && s.chipTextActive]}>{t}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={s.navRow}>
-              <TouchableOpacity style={s.outlineBtn} onPress={() => setStep(2)}>
-                <Text style={s.outlineBtnText}>← Back</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.btn, s.btnFlex, saving && s.btnDisabled]} onPress={handleFinish} disabled={saving}>
-                {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.btnText}>Set Up Business ✓</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
+      <View style={fs.titleBlock}>
+        <Text style={fs.bigTitle}>{isType ? 'Select Business Type' : 'Select Business Category'}</Text>
+        <Text style={fs.bigSubtitle}>This will help us personalise your app experience</Text>
+      </View>
+
+      {isType
+        ? <BusinessTypeList selected={bizType} onSelect={setBizType} />
+        : <BusinessCategoryGrid selected={category} onSelect={setCategory} />}
+
+      <View style={fs.footer}>
+        <View style={fs.stepInfoRow}>
+          <Text style={fs.stepInfoText}>Business Setup: <Text style={fs.stepInfoBold}>Step {step}/3</Text></Text>
+        </View>
+        {isType ? (
+          <TouchableOpacity
+            style={[fs.primaryBtn, saving && fs.primaryBtnDisabled]}
+            disabled={saving}
+            onPress={handleFinish}
+          >
+            {saving
+              ? <ActivityIndicator color="#fff" size="small" />
+              : <Text style={fs.primaryBtnText}>DONE</Text>}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[fs.primaryBtn, !category && fs.primaryBtnDisabled]}
+            disabled={!category}
+            onPress={() => setStep(3)}
+          >
+            <Text style={[fs.primaryBtnText, !category && fs.primaryBtnTextDisabled]}>NEXT</Text>
+          </TouchableOpacity>
         )}
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
+// Step 1 (card) styles
 const s = StyleSheet.create({
   safe:        { flex: 1, backgroundColor: colors.blueLight },
   header:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing[4] },
@@ -156,15 +173,28 @@ const s = StyleSheet.create({
   title2:      { fontSize: typography.md, fontFamily: 'Poppins-Medium', color: colors.gray700, marginBottom: 6, marginTop: 16 },
   subtitle:    { fontSize: typography.base, color: colors.gray500, marginBottom: 24, fontFamily: 'Poppins-Regular' },
   input:       { borderWidth: 1.5, borderColor: colors.gray200, borderRadius: radius.lg, paddingHorizontal: 14, paddingVertical: 12, fontSize: typography.md, color: colors.gray900, marginBottom: 8, fontFamily: 'Poppins-Regular' },
-  grid:        { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
-  chip:        { paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.full, borderWidth: 1, borderColor: colors.gray200, backgroundColor: '#fff' },
-  chipActive:  { borderColor: colors.blue, backgroundColor: colors.blueLight },
-  chipText:    { fontSize: typography.sm, color: colors.gray600, fontFamily: 'Poppins-Regular' },
-  chipTextActive: { color: colors.blue, fontFamily: 'Poppins-Medium' },
-  navRow:      { flexDirection: 'row', gap: 10 },
-  btn:         { backgroundColor: colors.blue, borderRadius: radius.lg, paddingVertical: 14, alignItems: 'center' },
-  btnFlex:     { flex: 1 },
+  btn:         { backgroundColor: colors.blue, borderRadius: radius.lg, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
   btnDisabled: { opacity: 0.4 },
   btnText:     { color: '#fff', fontSize: typography.md, fontFamily: 'Poppins-Medium' },
-  outlineBtn:  { borderWidth: 1, borderColor: colors.gray200, borderRadius: radius.lg, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center' },
-  outlineBtnText: { color: colors.gray600, fontSize: typography.md, fontFamily: 'Poppins-Medium' } });
+});
+
+// Steps 2/3 (full-screen picker) styles — matches the AddBusiness wizard
+const fs = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f9f9f9' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing[4], paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: colors.gray100 },
+  backBtn: { padding: 4, width: 40 },
+  headerTitle: { flex: 1 },
+  skipBtn: { width: 40, alignItems: 'flex-end', paddingVertical: 4 },
+  skipText: { fontSize: typography.sm, fontFamily: 'Poppins-SemiBold', color: colors.gray500, letterSpacing: 0.5 },
+  titleBlock: { paddingHorizontal: spacing[4], paddingTop: 24, paddingBottom: 8, alignItems: 'center', backgroundColor: '#f9f9f9' },
+  bigTitle: { fontSize: typography['4xl'], fontFamily: 'Poppins-SemiBold', color: colors.gray900, textAlign: 'center' },
+  bigSubtitle: { fontSize: typography.base, color: colors.gray500, fontFamily: 'Poppins-Regular', textAlign: 'center', marginTop: 6 },
+  footer: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: colors.gray100 },
+  stepInfoRow: { backgroundColor: '#f0f0f0', paddingHorizontal: spacing[4], paddingVertical: 10 },
+  stepInfoText: { fontSize: typography.sm, color: colors.gray600, fontFamily: 'Poppins-Regular' },
+  stepInfoBold: { color: colors.gray900, fontFamily: 'Poppins-SemiBold' },
+  primaryBtn: { backgroundColor: colors.blue, borderRadius: radius.md, paddingVertical: 15, alignItems: 'center', justifyContent: 'center', marginHorizontal: spacing[4], marginTop: 12, marginBottom: spacing[4] },
+  primaryBtnDisabled: { backgroundColor: '#d5d5d5' },
+  primaryBtnText: { color: '#fff', fontSize: typography.md, fontFamily: 'Poppins-SemiBold', letterSpacing: 0.5 },
+  primaryBtnTextDisabled: { color: '#999' },
+});
