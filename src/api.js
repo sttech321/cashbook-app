@@ -1,12 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Web → localhost, Android emulator → 10.0.2.2, Production → Render
-const BASE = __DEV__
+// Backend API base URL.
+// 1st priority → EXPO_PUBLIC_API_URL (from .env / .env.production) — kisi bhi env ke liye override.
+// Fallback     → sensible per-platform defaults (web dev / Android emulator / production).
+const ENV_URL = process.env.EXPO_PUBLIC_API_URL;
+const BASE = ENV_URL || (__DEV__
   ? Platform.OS === 'web'
     ? 'http://localhost:3001/api'
     : 'http://10.0.2.2:3001/api'
-  : 'https://cashbook-backend-eyji.onrender.com/api';
+  : 'https://cashbook-backend-eyji.onrender.com/api');
 
 const TOKEN_KEY = 'cashbook_token';
 
