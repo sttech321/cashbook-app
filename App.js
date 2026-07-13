@@ -23,9 +23,17 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     html, body, #root {
       font-family: 'Poppins-Regular', sans-serif;
     }
-
   `;
   document.head.appendChild(style);
+
+  // Register Service Worker for PWA
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js').catch((error) => {
+        console.log('SW Registration failed: ', error);
+      });
+    });
+  }
 }
 
 export default function App() {

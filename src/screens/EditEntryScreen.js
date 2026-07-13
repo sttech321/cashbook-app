@@ -113,11 +113,12 @@ export default function EditEntryScreen({ route, navigation }) {
   // Keep a ref so the beforeRemove listener always reads the latest value
   const isDirtyRef = useRef(isDirty);
   isDirtyRef.current = isDirty;
+  const isSubmittingRef = useRef(false);
 
   // Intercept hardware-back / swipe gestures
   useEffect(() => {
     const unsub = navigation.addListener('beforeRemove', (e) => {
-      if (!isDirtyRef.current) return;
+      if (!isDirtyRef.current || isSubmittingRef.current) return;
       e.preventDefault();
       setPendingAction(() => () => navigation.dispatch(e.data.action));
       setShowLeaveModal(true);
@@ -163,6 +164,7 @@ export default function EditEntryScreen({ route, navigation }) {
         category:    selectedCat      || undefined,
         paymentMode: selectedPay      || undefined });
       // Pop EditEntry and EntryDetail, reload TransactionView via useFocusEffect
+      isSubmittingRef.current = true;
       navigation.pop(2);
     } catch (err) {
       Alert.alert('Error', err.message);
@@ -179,6 +181,7 @@ export default function EditEntryScreen({ route, navigation }) {
         onPress: async () => {
           try {
             await deleteTransaction(currentBusinessId, bookId, tx.id);
+            isSubmittingRef.current = true;
             navigation.pop(2); // pop EditEntry + EntryDetail
           } catch (err) {
             Alert.alert('Error', err.message);

@@ -19,7 +19,12 @@
       "package": "com.anonymous.cashbookapp"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "CashBook App",
+      "shortName": "CashBook",
+      "display": "standalone",
+      "themeColor": "#2563EB",
+      "backgroundColor": "#ffffff"
     }
   }
 }

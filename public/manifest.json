@@ -1,0 +1,16 @@
+{
+  "name": "CashBook App",
+  "short_name": "CashBook",
+  "description": "Manage Business Expenses with CashBook",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192 512x512 any",
+      "type": "image/png"
+    }
+  ]
+}
